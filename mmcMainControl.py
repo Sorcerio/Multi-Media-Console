@@ -1,12 +1,12 @@
 # Multi-Media Console, Main Controller
 
 # Imports
-import os               # For File Management
-import urllib.request   # For YouTube Searches
-import urllib.parse     # For YouTube Searches
-import re               # For Regular Expressions
-from lxml import html   # For Reading XML Data
-import requests         # For Making Web Requests
+import os                       # For File Management, Default Python Library
+import urllib.request           # For YouTube Searches, Default Python Library
+import urllib.parse             # For YouTube Searches, Default Python Library
+import re                       # For Regular Expressions, Default Python Library
+import pafy                     # For Handling YouTube, [sudo] pip install pafy
+from subprocess import call     # For Running Console Commands, Default Python Library
 
 # Globals
 VERSION = "1.0"
@@ -95,7 +95,7 @@ def showMainMenu(media,names):
         choiceLabel += 1
 
     # Print YouTube
-    print("[ "+str(choiceLabel)+" ] YouTube")
+    print("[ "+str(choiceLabel)+" ] YouTube Audio")
 
     # Print Exit
     print("[ "+str(choiceLabel+1)+" ] Exit Program")
@@ -155,9 +155,10 @@ def showYouTubeMenu():
     print("")
 
     # Print Header
-    showHeaderMessage("YouTube")
+    showHeaderMessage("YouTube Audio")
 
     # Variables
+    listLimit = 5
     choiceLabel = 0
 
     # Print Back Option
@@ -189,7 +190,7 @@ def showYouTubeMenu():
         print("")
 
         # Show Header
-        showHeaderMessage("Youtube - Search")
+        showHeaderMessage("Youtube Audio - Search")
 
         # Get Search Query
         newQuery = input("Search: ")
@@ -205,15 +206,61 @@ def showYouTubeMenu():
         choiceLabel_S += 1
 
         # Display All Choices
+        tick = 0
+        shouldPrint = True
+        foundVideos = []
         for item in results:
-            # Get Name of Video
-            page = requests.get("http://www.youtube.com/watch?v="+str(item))
-            tree = html.fromstring(page.content)
-            videoTitle = tree.xpath("//*[@id='container']/h1")
-            print(videoTitle)
+            try:
+                if tick != listLimit and shouldPrint:
+                    # Pafy the Video
+                    video = pafy.new("http://www.youtube.com/watch?v="+str(item))
 
-            # # Print Choice
-            # print("[ "+str(choiceLabel)+" ] "+videoTitle+", Id: "+str(item))
+                    # Print Choice
+                    print("[ "+str(choiceLabel_S)+" ] "+video.duration+"\t"+video.title)
+
+                    # Add to List
+                    foundVideos.append(video)
+
+                    # Iterate
+                    tick += 1
+                    choiceLabel_S += 1
+                    shouldPrint = False
+                else:
+                    shouldPrint = True
+            except:
+                print("[ X ] Failed to Load this Video")
+
+        # User Pick Video
+        pickedVideo = input("Choose your option: ")
+
+        # Logic the Choice
+        if pickedVideo == "0":
+            # Go back to main menu
+            print("")
+            main()
+        else:
+            if int(pickedVideo) > 0 and int(pickedVideo) < choiceLabel_S:
+                # It's a video selection
+                # Get the link
+                newLink = foundVideos[int(pickedVideo)].getbestaudio().url
+
+                # Play through VLC
+                call("cvlc --no-video "+newLink)
+
+                # Notify Playing
+                print("Now Playing: "+foundVideos[int(pickedVideo)].title)
+
+                # User Controls (Favorite, Pause, Exit)
+                userControl = input("Choice?")
+
+                # Return to Main Menu
+                print("")
+                main()
+                
+            else:
+                # They're dumb
+                print("")
+                main()
 
     else:
         # Go Back, Tell them to try harder
