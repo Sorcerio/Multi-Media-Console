@@ -1,12 +1,18 @@
 # Multi-Media Console, Main Controller
 
 # Imports
-import os
+import os               # For File Management
+import urllib.request   # For YouTube Searches
+import urllib.parse     # For YouTube Searches
+import re               # For Regular Expressions
+from lxml import html   # For Reading XML Data
+import requests         # For Making Web Requests
 
 # Globals
 VERSION = "1.0"
 G_MEDIA = None
 
+###########################################################################################
 # Main Thread
 def main():
     # Show Welcome Text
@@ -18,6 +24,7 @@ def main():
     # Print Main Menu
     showMainMenu(G_MEDIA,nameList)
 
+###########################################################################################
 # Get included media files
 # Types:
 # Links = NAME.txt w/ Contents: Link to Web Address
@@ -52,18 +59,21 @@ def getAttachedMedia():
     # Return List
     return mediaContainer, nameList
 
+###########################################################################################
 # Print Welcome Message
 def showWelcomeMessage():
     message = "[ Welcome to T-Papi Multi-Media Controller v"+VERSION+" ]" 
     print(message)
     print("-"*len(message))
 
+###########################################################################################
 # Print Title Message
 def showHeaderMessage(message):
     header = "[ "+message+" ]"
     print(header)
     print("-"*len(header))
 
+###########################################################################################
 # Print Main Menu Message
 def showMainMenu(media,names):
     # Variables
@@ -84,8 +94,11 @@ def showMainMenu(media,names):
         print("("+str(len(item))+" items)")
         choiceLabel += 1
 
+    # Print YouTube
+    print("[ "+str(choiceLabel)+" ] YouTube")
+
     # Print Exit
-    print("[ "+str(choiceLabel)+" ] Exit Program")
+    print("[ "+str(choiceLabel+1)+" ] Exit Program")
 
     # Get Valid Input
     # Print Instructions
@@ -93,9 +106,12 @@ def showMainMenu(media,names):
 
     # Check Input
     # TODO: Make recursive if invalid input
-    if selection == str(choiceLabel):
+    if selection == str(choiceLabel+1):
         # Quit (it's always last)
         quit()
+    elif selection == str(choiceLabel):
+        # YouTube (it's always second to last)
+        showYouTubeMenu()
     else:
         # Try to use input
         try:
@@ -108,6 +124,7 @@ def showMainMenu(media,names):
         except:
             print("Invalid input.")
 
+###########################################################################################
 # Shows a new content menu
 def showContentMenu(message,items):
     # Print Spacer
@@ -131,5 +148,89 @@ def showContentMenu(message,items):
     # Get Input
     input("KILL")
 
+###########################################################################################
+# Shows the YouTube Menu
+def showYouTubeMenu():
+    # Print Spacer
+    print("")
+
+    # Print Header
+    showHeaderMessage("YouTube")
+
+    # Variables
+    choiceLabel = 0
+
+    # Print Back Option
+    print("[ "+str(choiceLabel)+" ] Go Back")
+    choiceLabel += 1
+
+    # Print Favorites Option
+    print("[ "+str(choiceLabel)+" ] Favorites")
+    choiceLabel += 1
+
+    # Print Favorites Option
+    print("[ "+str(choiceLabel)+" ] Search")
+
+    # Get User Choice
+    modeChoice = input("Choose your option: ")
+
+    # Check choices
+    if modeChoice == "0":
+        # Go Back
+        print("")
+        main()
+    elif modeChoice == "1":
+        # Favorites
+        print("")
+        main() # TODO: Make Favorites!
+    elif modeChoice == "2":
+        # Search
+        # Print Spacer
+        print("")
+
+        # Show Header
+        showHeaderMessage("Youtube - Search")
+
+        # Get Search Query
+        newQuery = input("Search: ")
+
+        # Search the Query
+        results = searchYouTubeQuery(newQuery)
+
+        # Variables
+        choiceLabel_S = 0
+
+        # Print Back Option
+        print("[ "+str(choiceLabel_S)+" ] Go Back")
+        choiceLabel_S += 1
+
+        # Display All Choices
+        for item in results:
+            # Get Name of Video
+            page = requests.get("http://www.youtube.com/watch?v="+str(item))
+            tree = html.fromstring(page.content)
+            videoTitle = tree.xpath("//*[@id='container']/h1")
+            print(videoTitle)
+
+            # # Print Choice
+            # print("[ "+str(choiceLabel)+" ] "+videoTitle+", Id: "+str(item))
+
+    else:
+        # Go Back, Tell them to try harder
+        print("Invalid Input. Returning to Main Menu.\n")
+        main()
+
+###########################################################################################
+# Searches YouTube for a list of Video Ids that match the Search Query
+# In part, by: Grant Curell, Code Project, 2015
+def searchYouTubeQuery(inQuery):
+    query_string = urllib.parse.urlencode({"search_query" : inQuery})
+    html_content = urllib.request.urlopen("http://www.youtube.com/results?" + query_string)
+    search_results = re.findall(r'href=\"\/watch\?v=(.{11})', html_content.read().decode())
+    # print("http://www.youtube.com/watch?v=" + search_results[0])
+
+    return search_results
+
+###########################################################################################
 # Execute Main Thread
 main()
